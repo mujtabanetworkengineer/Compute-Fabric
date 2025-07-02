@@ -1,0 +1,90 @@
+# Repository: Compute Fabric Firmware Upgrade
+
+## Overview
+This repository provides tools and runbooks to upgrade firmware from OS version 4.21 to 4.28 across compute fabric devices.
+
+---
+
+## 🔧 Manual Upgrade Steps
+
+### 1. Pre-Upgrade Validation
+```bash
+show version
+show system uptime
+show logging | match "error|fail"
+show interfaces terse
+```
+
+### 2. Transfer Firmware
+```bash
+scp os-image-4.28.img admin@<device_ip>:/var/tmp
+```
+
+### 3. Install Firmware
+```bash
+request system software add /var/tmp/os-image-4.28.img no-validate
+```
+
+### 4. Reboot Device
+```bash
+request system reboot
+```
+
+### 5. Post-Upgrade Checks
+```bash
+show version
+show interfaces terse
+show logging | last 50
+show route summary
+```
+
+---
+
+## 🚀 Python Automation Script (Netmiko)
+
+```python
+from netmiko import ConnectHandler
+
+def upgrade_firmware(device_ip):
+    device = {
+        'device_type': 'juniper',
+        'host': device_ip,
+        'username': 'admin',
+        'password': 'your_password',
+    }
+
+    conn = ConnectHandler(**device)
+    print(f"Connected to {device_ip}")
+
+    output = conn.send_command("show version")
+    print("Current Version:\n", output)
+
+    conn.send_command("file copy scp://admin@10.1.1.100/os-image-4.28.img /var/tmp")
+    conn.send_command("request system software add /var/tmp/os-image-4.28.img no-validate")
+    conn.send_command("request system reboot")
+
+    conn.disconnect()
+
+if __name__ == "__main__":
+    device_list = ["10.1.1.1", "10.1.1.2"]
+    for ip in device_list:
+        upgrade_firmware(ip)
+```
+
+---
+
+## 📦 Files To Include
+- `upgrade_firmware.py` – Python script for automated upgrades
+- `runbook.md` – Markdown version of the manual upgrade steps
+- `inventory.csv` – IPs and device info
+- `firmware/` – Folder for storing firmware files
+
+---
+
+## 🛡️ Rollback Plan
+Reboot into previous OS image or reinstall 4.21 manually.
+
+---
+
+## 📄 License
+MIT License
